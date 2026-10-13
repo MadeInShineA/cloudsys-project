@@ -1,0 +1,56 @@
+<mxfile host="65bd71144e">
+    <diagram id="_TSDDbiyJ9ovOIP3LJan" name="Page-1">
+        <mxGraphModel dx="794" dy="538" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="jRg5UXnxp8F490jHrONY-6" parent="1" style="whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="" vertex="1">
+                    <mxGeometry height="280" width="200" x="550" y="40" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-1" parent="1" style="whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="" vertex="1">
+                    <mxGeometry height="160" width="200" x="40" y="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-4" edge="1" parent="1" source="jRg5UXnxp8F490jHrONY-2" style="edgeStyle=none;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="jRg5UXnxp8F490jHrONY-3">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-5" connectable="0" parent="jRg5UXnxp8F490jHrONY-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="Serial" vertex="1">
+                    <mxGeometry relative="1" y="-1" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-2" parent="1" style="whiteSpace=wrap;html=1;" value="Device (Simulate)" vertex="1">
+                    <mxGeometry height="40" width="160" x="60" y="140" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-10" edge="1" parent="1" source="jRg5UXnxp8F490jHrONY-3" style="edgeStyle=none;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="jRg5UXnxp8F490jHrONY-9">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-11" connectable="0" parent="jRg5UXnxp8F490jHrONY-10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="HTTP/REST&lt;div&gt;MQTT&lt;/div&gt;&lt;div&gt;AWS Iot&lt;/div&gt;" vertex="1">
+                    <mxGeometry relative="1" x="-0.1257" y="-3" as="geometry">
+                        <mxPoint as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-3" parent="1" style="whiteSpace=wrap;html=1;" value="Client" vertex="1">
+                    <mxGeometry height="40" width="160" x="60" y="210" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-7" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="AWS" vertex="1">
+                    <mxGeometry height="30" width="60" x="690" y="10" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-8" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="Host / Docker ?" vertex="1">
+                    <mxGeometry height="30" width="60" x="110" y="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-9" parent="1" style="whiteSpace=wrap;html=1;" value="&lt;b&gt;Endpoint&lt;/b&gt;&lt;div&gt;- AWS iot Core&lt;/div&gt;&lt;div&gt;- API gataway&lt;/div&gt;&lt;div&gt;(Lambda / kinesis)&lt;/div&gt;" vertex="1">
+                    <mxGeometry height="70" width="160" x="570" y="230" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-12" parent="1" style="whiteSpace=wrap;html=1;" value="&lt;span style=&quot;background-color: transparent;&quot;&gt;&lt;font color=&quot;#000000&quot;&gt;&lt;b&gt;STORAGE&lt;/b&gt;&lt;/font&gt;&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;- Aws&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;Timestream&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;- InfluxDB&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;- TimescaleDB&lt;/span&gt;&lt;/div&gt;&lt;div&gt;- Custom&amp;nbsp;&lt;/div&gt;&lt;/div&gt;" vertex="1">
+                    <mxGeometry height="100" width="160" x="570" y="120" as="geometry"/>
+                </mxCell>
+                <mxCell id="jRg5UXnxp8F490jHrONY-14" parent="1" style="whiteSpace=wrap;html=1;" value="&lt;div&gt;&lt;b&gt;Dashboard&lt;/b&gt;&lt;/div&gt;&lt;div&gt;- Grafana&lt;/div&gt;&lt;div&gt;-Amazone QuickSight&lt;/div&gt;&lt;div&gt;-custom web dashboard&lt;/div&gt;" vertex="1">
+                    <mxGeometry height="60" width="160" x="570" y="50" as="geometry"/>
+                </mxCell>
+                <mxCell id="kBFNBaloB_l1Vb3lwiRV-1" parent="1" style="whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;frequency ?&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;min/hour/day&amp;nbsp;&lt;/span&gt;&lt;/div&gt;" vertex="1">
+                    <mxGeometry height="60" width="120" x="320" y="280" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>
