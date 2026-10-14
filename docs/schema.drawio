@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="_TSDDbiyJ9ovOIP3LJan" name="Page-1">
-        <mxGraphModel dx="794" dy="538" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+        <mxGraphModel dx="626" dy="541" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -49,6 +49,9 @@
                 </mxCell>
                 <mxCell id="kBFNBaloB_l1Vb3lwiRV-1" parent="1" style="whiteSpace=wrap;html=1;" value="&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;frequency ?&lt;/span&gt;&lt;div&gt;&lt;span style=&quot;color: rgb(63, 63, 63); background-color: transparent;&quot;&gt;min/hour/day&amp;nbsp;&lt;/span&gt;&lt;/div&gt;" vertex="1">
                     <mxGeometry height="60" width="120" x="320" y="280" as="geometry"/>
+                </mxCell>
+                <mxCell id="hBRDs4PW5WK-G0fl28Mf-1" parent="1" style="text;html=1;whiteSpace=wrap;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;rounded=0;" value="batching" vertex="1">
+                    <mxGeometry height="30" width="60" x="110" y="250" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
