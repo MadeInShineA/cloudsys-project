@@ -35,6 +35,7 @@ or if serial.port is null in the config, output goes to stdout.
 import argparse
 import random
 import time
+import os
 
 import yaml
 
@@ -273,7 +274,7 @@ class DeviceSimulator:
 
         return {
             "timestamp": _epoch_millis(),
-            "device_id": self.cfg["device_id"],
+            "device_id": self.cfg["device_id"] + self.cfg["device_number"],
             "uptime_ms": int(self.uptime_seconds * 1000),
             "temperature_c": round(temperature_c, 2),
             "power_consumption_mw": round(power_mw, 1),
@@ -298,9 +299,12 @@ def main():
     parser.add_argument(
         "--ground-truth", default="ground_truth.log", help="Path to instructor ground-truth log"
     )
+    parser.add_argument("--number", default="0", help="number of the machine")
+
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    cfg["device_number"] = args.number
     ground_truth = GroundTruthLogger(args.ground_truth)
     simulator = DeviceSimulator(cfg, ground_truth)
     writer = SerialWriter(cfg["serial"]["port"], cfg["serial"]["baudrate"])

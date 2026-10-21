@@ -2,7 +2,8 @@
 # All durations are expressed either in seconds (simulated time) or in
 # "ticks" (one tick = one sample_interval_seconds).
 
-device_id: coffee-machine-01
+device_id: coffee-machine-
+device_number: 0
 
 serial:
   port: null          # e.g. "/dev/ttyUSB0" or "/dev/serial0". null = print to stdout (useful for testing without hardware)
