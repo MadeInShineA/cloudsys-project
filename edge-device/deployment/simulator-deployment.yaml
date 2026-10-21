@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: fifo-pod
+spec:
+  volumes:
+  - name: shared-storage
+    emptyDir: {}
+
+  initContainers:
+  - name: create-fifo
+    image: alpine:latest
+    command: ["sh", "-c"]
+    args: ["mkfifo /shared/my-fifo"]
+    volumeMounts:
+    - name: shared-storage
+      mountPath: /shared
+
+  containers:
+  - name: simulator
+    image: oglelehub/simulator:1.0.1
+    imagePullPolicy: IfNotPresent
+    command: ["sh", "-c"]
+    args: ["python /app/device_simulator.py --config config.yaml --ground-truth ground_truth.log > /shared/my-fifo"]
+    volumeMounts:
+    - name: shared-storage
+      mountPath: /shared
