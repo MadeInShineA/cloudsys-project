@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: device-worker
+spec:
+  serviceName: "device-worker-service"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: device-worker
+  template:
+    metadata:
+      labels:
+        app: device-worker
+    spec:
+      volumes:
+      - name: shared-storage
+        hostPath:
+          path: /tmp/iot-shared  # Dossier partagé sur le nœud Kind
+          type: DirectoryOrCreate
+
+      initContainers:
+      - name: create-fifo
+        image: alpine:latest
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        command: ["sh", "-c"]
+        args:
+          - |
+            WORKER_INDEX=$(echo $POD_NAME | awk -F'-' '{print $NF}')
+            mkfifo /shared/fifo-$WORKER_INDEX
+            echo "FIFO /shared/fifo-$WORKER_INDEX créé."
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /shared
+
+      containers:
+      - name: simulator
+        image: oglelehub/simulator:1.0.2
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: WORKER_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        command: ["sh", "-c"]
+        args:
+          - |
+            WORKER_INDEX=$(echo $WORKER_ID | awk -F'-' '{print $NF}')
+            python /app/device_simulator.py --config config.yaml --ground-truth ground_truth.log --number $WORKER_INDEX > /shared/fifo-$WORKER_INDEX
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /shared
