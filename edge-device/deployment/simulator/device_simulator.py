@@ -35,7 +35,6 @@ or if serial.port is null in the config, output goes to stdout.
 import argparse
 import random
 import time
-import os
 
 import yaml
 
