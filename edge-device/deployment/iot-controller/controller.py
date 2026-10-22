@@ -1,149 +1,87 @@
 #!/usr/bin/env python3
 
-import argparse
-import glob
 import json
-import os
-import selectors
+import sqlite3
 import time
+import os
 import paho.mqtt.client as mqtt
 
+# Récupération des paramètres via les variables d'environnement (avec valeurs par défaut)
+DB_PATH = os.environ.get("DB_PATH", "/shared/iot_data.db")
+MAX_BYTES = int(os.environ.get("MAX_BYTES", 4500))
+POLL_INTERVAL = float(os.environ.get("POLL_INTERVAL", 2.0))
 
-def parse_arguments():
-    """Parse et retourne les arguments de la ligne de commande."""
-    parser = argparse.ArgumentParser(description="IoT Central Controller")
-    parser.add_argument("--fifo-path", default="/shared", help="Path where FIFOs are located")
-    parser.add_argument("--batch-size", type=int, default=30, help="Number of lines before flushing")
-    parser.add_argument("--flush-interval", type=float, default=10.0, help="Max time in seconds before flushing")
+MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
+MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
+TOPIC = os.environ.get("TOPIC", "iot/devices/batch")
+
+def get_unsent_batch(conn, max_bytes):
+    """Récupère un lot de messages non envoyés dont la taille cumulée approche la limite."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, raw_data FROM telemetry_logs WHERE sent = 0 ORDER BY id ASC")
+    rows = cursor.fetchall()
     
-    # Paramètres MQTT
-    parser.add_argument("--mqtt-host", default="your-iot-endpoint.amazonaws.com", help="AWS IoT Endpoint")
-    parser.add_argument("--mqtt-port", type=int, default=8883, help="MQTT Port (8883 for TLS)")
-    parser.add_argument("--cert-path", default="/certs", help="Path to certificates directory")
-    parser.add_argument("--topic", default="iot/devices/batch", help="MQTT Topic")
+    batch_ids = []
+    batch_data = []
+    current_size = 0
     
-    return parser.parse_args()
-
-
-def initialize_mqtt_client(args):
-    """Initialise et configure le client MQTT (avec support TLS pour AWS IoT Core)."""
-    client = mqtt.Client(client_id="iot-central-controller")
-    
-    # Configuration TLS (décommenter si les certificats sont présents)
-    # client.tls_set(
-    #     ca_certs=os.path.join(args.cert_path, "root-CA.crt"),
-    #     certfile=os.path.join(args.cert_path, "device.pem.crt"),
-    #     keyfile=os.path.join(args.cert_path, "private.pem.key")
-    # )
-
-    try:
-        print(f"[*] Connexion au broker MQTT {args.mqtt_host}:{args.mqtt_port}...")
-        client.connect(args.mqtt_host, args.mqtt_port, keepalive=60)
-        client.loop_start()
-    except Exception as e:
-        print(f"[-] Erreur de connexion MQTT : {e}")
+    for row_id, raw_data in rows:
+        line_size = len(json.dumps(raw_data))
+        if current_size + line_size > max_bytes and batch_data:
+            break
+        batch_ids.append(row_id)
+        batch_data.append(raw_data)
+        current_size += line_size
         
-    return client
+    return batch_ids, batch_data
 
-
-def discover_and_register_fifos(fifo_path, selector, registered_files):
-    """Découvre dynamiquement les nouveaux fichiers FIFO et les enregistre dans le sélecteur."""
-    search_pattern = os.path.join(fifo_path, "fifo-*")
-    current_fifos = glob.glob(search_pattern)
-
-    for fifo_path_item in current_fifos:
-        if fifo_path_item not in registered_files:
-            try:
-                # Ouverture non bloquante pour éviter le blocage si aucun writer n'est présent
-                fd = os.open(fifo_path_item, os.O_RDONLY | os.O_NONBLOCK)
-                file_obj = open(fd, 'r', encoding='utf-8', errors='ignore')
-                
-                selector.register(file_obj, selectors.EVENT_READ, data=fifo_path_item)
-                registered_files.add(fifo_path_item)
-                print(f"[+] Connecté au nouveau FIFO : {fifo_path_item}")
-            except OSError:
-                # Le fichier est peut-être en cours de création, on ignore et réessaiera plus tard
-                pass
-
-
-def handle_fifo_read(key, selector, registered_files, data_buffer):
-    """Lit les données disponibles sur un FIFO et gère les déconnexions."""
-    file_obj = key.fileobj
-    fifo_path = key.data
-    
-    line = file_obj.readline()
-    if line:
-        raw_data = line.strip()
-        if raw_data:
-            data_buffer.append(raw_data)
-    else:
-        # Chaîne vide = fin de flux ou déconnexion de l'écrivain
-        print(f"[-] Déconnexion du FIFO : {fifo_path}")
-        selector.unregister(file_obj)
-        file_obj.close()
-        registered_files.remove(fifo_path)
-
-
-def should_flush_buffer(data_buffer, last_flush_time, batch_size, flush_interval):
-    """Détermine si le buffer doit être vidé (par taille atteinte ou par délai écoulé)."""
-    if not data_buffer:
-        return False
-        
-    current_time = time.time()
-    time_elapsed = current_time - last_flush_time
-    
-    return len(data_buffer) >= batch_size or time_elapsed >= flush_interval
-
-
-def flush_buffer(data_buffer, client, topic):
-    """Forme le payload JSON global, l'envoie via MQTT et réinitialise le buffer."""
-    payload = json.dumps(data_buffer)
-    
-    print(f"\n--- [PUBLISH MQTT] Batch de {len(data_buffer)} messages (Taille : {len(payload)} octets) ---")
-    print(payload[:150] + "..." if len(payload) > 150 else payload)
-    print("-" * 75 + "\n")
-    
-    # Envoi effectif via MQTT
-    client.publish(topic, payload, qos=1)
-    
-    data_buffer.clear()
-
+def mark_as_sent(conn, batch_ids):
+    """Supprime les messages de la base après confirmation de l'envoi MQTT."""
+    if not batch_ids:
+        return
+    cursor = conn.cursor()
+    placeholders = ','.join(['?'] * len(batch_ids))
+    cursor.execute(f"DELETE FROM telemetry_logs WHERE id IN ({placeholders})", batch_ids) 
+    conn.commit()
 
 def main():
-    args = parse_arguments()
-    mqtt_client = initialize_mqtt_client(args)
-    
-    sel = selectors.DefaultSelector()
-    registered_files = set()
-    data_buffer = []
-    last_flush_time = time.time()
+    print(f"[*] Contrôleur démarré. Connexion au broker MQTT {MQTT_HOST}:{MQTT_PORT}...")
+    client = mqtt.Client(client_id="iot-central-controller")
+    client.connect(MQTT_HOST, MQTT_PORT, keepalive=60)
+    client.loop_start()
 
-    print(f"[*] Contrôleur démarré. Surveillance de : {args.fifo_path}")
+    print(f"[*] Surveillance de la base SQLite : {DB_PATH}")
 
     try:
         while True:
-            # 1. Gestion dynamique des sources (découverte des nouveaux workers)
-            discover_and_register_fifos(args.fifo_path, sel, registered_files)python3 controller.py --mqtt-host localhost --mqtt-port 1883 --topic "iot/devices/batch"
-
-            # 2. Multiplexage I/O non bloquant (epoll)
-            events = sel.select(timeout=1.0)
+            if not os.path.exists(DB_PATH):
+                time.sleep(1)
+                continue
+                
+            conn = sqlite3.connect(DB_PATH)
+            batch_ids, batch_data = get_unsent_batch(conn, MAX_BYTES)
             
-            for key, mask in events:
-                handle_fifo_read(key, sel, registered_files, data_buffer)
-
-            # 3. Vérification et envoi du batch si les conditions sont réunies
-            if should_flush_buffer(data_buffer, last_flush_time, args.batch_size, args.flush_interval):
-                flush_buffer(data_buffer, mqtt_client, args.topic)
-                last_flush_time = time.time()
-
+            if batch_data:
+                payload = json.dumps(batch_data)
+                print(f"[*] Envoi MQTT d'un batch de {len(batch_data)} éléments ({len(payload)} octets)...")
+                
+                # Publication avec QoS 1 (garantit la livraison)
+                info = client.publish(TOPIC, payload, qos=1)
+                info.wait_for_publish() # Attend l'ACK du broker
+                
+                # Nettoyage de la base
+                mark_as_sent(conn, batch_ids)
+                print("[+] Batch envoyé et purgé de la base avec succès.")
+            else:
+                time.sleep(POLL_INTERVAL)
+                
+            conn.close()
+            
     except KeyboardInterrupt:
-        print("\n[*] Arrêt du contrôleur demandé...")
+        print("\n[*] Arrêt du contrôleur.")
     finally:
-        mqtt_client.loop_stop()
-        mqtt_client.disconnect()
-        sel.close()
-        print("[*] Contrôleur arrêté proprement.")
-
+        client.loop_stop()
+        client.disconnect()
 
 if __name__ == "__main__":
     main()

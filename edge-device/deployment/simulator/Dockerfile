@@ -32,5 +32,6 @@ COPY --from=builder /app /app
 ENV PATH="/app/venv/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
 
-# Set the command to start your application
-CMD ["python", "simulator.py"]
+RUN chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]
