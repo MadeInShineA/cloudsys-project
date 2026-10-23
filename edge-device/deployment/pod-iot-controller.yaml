@@ -14,8 +14,13 @@ spec:
       value: "172.17.0.1"
     - name: MQTT_PORT
       value: "1883"
+
     - name: DB_PATH
       value: "/shared/iot_data.db"
+    - name: MAX_BYTES
+      value: "4500"
+    - name: POLL_INTERVAL
+      value: "10.0"
     # -----------------------------------------------------------------
 
     volumeMounts:

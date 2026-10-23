@@ -1,5 +1,12 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+name: iot-cluster
 nodes:
 - role: control-plane
+  extraMounts:
+  - hostPath: /tmp/iot-shared
+    containerPath: /shared
 - role: worker
+  extraMounts:
+  - hostPath: /tmp/iot-shared
+    containerPath: /shared
