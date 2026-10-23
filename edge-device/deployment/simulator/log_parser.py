@@ -27,37 +27,19 @@ def init_db(db_path):
     conn.commit()
     conn.close()
 
-def tail_f(filename):
-    """Générateur qui lit un fichier en continu (type tail -f en Python)."""
-    while not os.path.exists(filename):
-        time.sleep(0.5)
-        
-    with open(filename, "r") as f:
-        # Se positionne à la fin du fichier pour ne lire que les *nouvelles* lignes
-        f.seek(0, os.SEEK_END)
-        while True:
-            line = f.readline()
-            if not line:
-                time.sleep(0.2)
-                continue
-            yield line
-
 def main():
     worker_id = get_env_or_exit("WORKER_ID")
     db_path = os.getenv("DB_PATH", "/shared/iot_data.db")
     
-    # Extrait l'index du worker (ex: device-worker-0 -> 0)
-    worker_index = worker_id.split('-')[-1]
-    log_file = f"/shared/worker-{worker_index}.log"
-    
-    print(f"[*] Log parser pour {worker_id} démarré. Lecture de {log_file} -> {db_path}", file=sys.stderr)
+    print(f"[*] Log parser ({worker_id}) démarré. Lecture de la sortie standard (stdin) -> {db_path}", file=sys.stderr)
     
     init_db(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     try:
-        for line in tail_f(log_file):
+        # sys.stdin lit ligne par ligne tout ce qui est envoyé sur la sortie standard
+        for line in sys.stdin:
             raw_line = line.strip()
             if not raw_line:
                 continue

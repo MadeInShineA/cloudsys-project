@@ -32,36 +32,8 @@ spec:
         - name: shared-storage
           mountPath: /shared
 
----
-
-apiVersion: v1
-kind: Pod
-metadata:
-  name: iot-controller
-  labels:
-    app: iot-controller
-spec:
-  containers:
-  - name: controller
-    image: oglelehub/iot-controller:1.0.2
-    imagePullPolicy: IfNotPresent
-    
-    # --- ON UTILISE DES VARIABLES D'ENVIRONNEMENT AU LIEU DES ARGS ---
-    env:
-    - name: MQTT_HOST
-      value: "172.17.0.1"
-    - name: MQTT_PORT
-      value: "1883"
-    - name: DB_PATH
-      value: "/shared/iot_data.db"
-    # -----------------------------------------------------------------
-
-    volumeMounts:
-    - name: shared-storage
-      mountPath: /shared
-
-  volumes:
-  - name: shared-storage
-    hostPath:
-      path: /tmp/iot-shared
-      type: DirectoryOrCreate
+      volumes:
+        - name: shared-storage
+          hostPath:
+            path: /tmp/iot-shared
+            type: DirectoryOrCreate
