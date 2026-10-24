@@ -30,5 +30,5 @@ spec:
   volumes:
     - name: shared-storage
       hostPath:
-        path: /tmp/iot-shared
+        path: /shared
         type: DirectoryOrCreate
