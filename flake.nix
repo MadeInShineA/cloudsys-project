@@ -27,6 +27,9 @@
             python3
             ruff
             pyright
+
+            kind
+            kubectl
           ];
         };
       }
