@@ -1,17 +1,30 @@
 
+Toutes les commandes sont à lancer depuis le dossier `edge-device/`.
+
 Créez le cluster à partir du fichier de configuration :
 ```
 kind create cluster --config kind-config.yaml --name iot-cluster
 ```
-
-Lancer le script rebuild and deply
 
 Vérifiez que les nœuds sont bien prêts :
 ```
 kubectl get nodes
 ```
 
-Héberger en local un broker mqtt
+Créez le secret contenant les certificats AWS IoT Core (fichiers dans `deployment/certs/`, ignorés par git) :
+```
+kubectl create secret generic iot-core-certs --from-file=deployment/certs/AmazonRootCA1.pem --from-file=deployment/certs/device.pem.crt --from-file=deployment/certs/private.pem.key
+```
+
+Déployez les simulateurs et le contrôleur :
+```
+kubectl apply -f deployment/statefulset-worker.yaml
+kubectl apply -f deployment/pod-iot-controller.yaml
+```
+
+Ou lancer le script rebuild and deploy (depuis `deployment/`).
+
+Héberger en local un broker mqtt (optionnel, à la place d'AWS IoT Core)
 ```
 docker run -d \
   --name mosquitto-broker \
