@@ -3,3 +3,4 @@
 project.egg-info
 edge-device/deployment/certs
 *__pycache__/
+cloud/lambda/*/function.zip
