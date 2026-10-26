@@ -30,6 +30,8 @@
 
             kind
             kubectl
+
+            awscli2
           ];
         };
       }
