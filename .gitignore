@@ -1,3 +1,5 @@
 .direnv/
 .venv/
 project.egg-info
+edge-device/deployment/certs
+*__pycache__/
