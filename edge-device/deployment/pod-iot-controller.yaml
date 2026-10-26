@@ -7,28 +7,50 @@ metadata:
 spec:
   containers:
   - name: controller
-    image: oglelehub/iot-controller:1.0.2
+    image: madeinshinea/cloud-project:controller-1.0.0
     imagePullPolicy: IfNotPresent
     env:
+    # --- AWS IoT Core -------------------------------------------------
     - name: MQTT_HOST
-      value: "172.17.0.1"
+      value: "a115j3mq7h1g0g-ats.iot.eu-central-1.amazonaws.com"
     - name: MQTT_PORT
-      value: "1883"
+      value: "8883"
+    - name: CLIENT_ID
+      value: "group-8-iot-controller"
+    - name: GATEWAY_ID
+      value: "group-8-iot-gateway-01"
+    - name: TOPIC
+      value: "group-8/iot/devices/batch"
+    - name: CA_CERT
+      value: "/certs/AmazonRootCA1.pem"
+    - name: CERT_FILE
+      value: "/certs/device.pem.crt"
+    - name: KEY_FILE
+      value: "/certs/private.pem.key"
 
+    # --- Batching -----------------------------------------------------
     - name: DB_PATH
       value: "/shared/iot_data.db"
     - name: MAX_BYTES
-      value: "4500"
+      value: "5000"
+    - name: MAX_WAIT
+      value: "60"
     - name: POLL_INTERVAL
-      value: "10.0"
+      value: "2.0"
     # -----------------------------------------------------------------
 
     volumeMounts:
     - name: shared-storage
       mountPath: /shared
+    - name: iot-core-certs
+      mountPath: /certs
+      readOnly: true
 
   volumes:
     - name: shared-storage
       hostPath:
         path: /shared
         type: DirectoryOrCreate
+    - name: iot-core-certs
+      secret:
+        secretName: iot-core-certs
