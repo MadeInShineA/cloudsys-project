@@ -10,7 +10,7 @@ serial:
   baudrate: 115200
 
 sample_interval_seconds: 2
-random_seed: 42        # set to null for a different random run each time
+random_seed: null        # set to null for a different random run each timeI
 
 baseline:
   ambient_temp_c: 22.0
