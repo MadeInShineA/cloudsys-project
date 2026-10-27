@@ -26,9 +26,15 @@ spec:
         volumeMounts:
         - name: shared-storage
           mountPath: /shared
+        - name: simulator-config
+          mountPath: /app/config.yaml
+          subPath: config.yaml
 
       volumes:
         - name: shared-storage
           hostPath:
             path: /shared
             type: DirectoryOrCreate
+        - name: simulator-config
+          configMap:
+            name: simulator-config

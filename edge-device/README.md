@@ -16,6 +16,11 @@ Créez le secret contenant les certificats AWS IoT Core (fichiers dans `deployme
 kubectl create secret generic iot-core-certs --from-file=deployment/certs/AmazonRootCA1.pem --from-file=deployment/certs/device.pem.crt --from-file=deployment/certs/private.pem.key
 ```
 
+Créez la ConfigMap contenant la configuration du simulateur (`deployment/simulator/config.yaml`, pas besoin de rebuild l'image après une modification) :
+```
+kubectl create configmap simulator-config --from-file=config.yaml=deployment/simulator/config.yaml
+```
+
 Déployez les simulateurs et le contrôleur :
 ```
 kubectl apply -f deployment/statefulset-worker.yaml
@@ -23,6 +28,8 @@ kubectl apply -f deployment/pod-iot-controller.yaml
 ```
 
 Ou lancer le script rebuild and deploy (depuis `deployment/`).
+
+Après une modification de la config du simulateur, supprimez le cluster (`kind delete cluster --name iot-cluster`) puis recréez-le avec les étapes ci-dessus.
 
 Héberger en local un broker mqtt (optionnel, à la place d'AWS IoT Core)
 ```

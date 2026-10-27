@@ -13,6 +13,8 @@ echo ""
 echo "=========================================="
 echo "2. Relance du pipeline dans Kubernetes..."
 echo "=========================================="
+kubectl create secret generic iot-core-certs --from-file=certs/AmazonRootCA1.pem --from-file=certs/device.pem.crt --from-file=certs/private.pem.key
+kubectl create configmap simulator-config --from-file=config.yaml=simulator/config.yaml
 kubectl apply -f pod-iot-controller.yaml
 kubectl apply -f statefulset-worker.yaml
 
