@@ -4,7 +4,7 @@ from decimal import Decimal
 import boto3
 
 table = boto3.resource("dynamodb").Table(os.environ["TABLE_NAME"])
-RETENTION_S = int(os.environ.get("RETENTION_DAYS", "90")) * 86400
+RETENTION_S = int(os.environ.get("RETENTION_DAYS", "360")) * 86400
 
 
 def lambda_handler(event, context):
