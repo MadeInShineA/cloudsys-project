@@ -14,8 +14,8 @@ echo ""
 echo "=========================================="
 echo "2. Relance du pipeline dans Kubernetes..."
 echo "=========================================="
-kubectl create secret generic iot-core-certs --from-file=certs/AmazonRootCA1.pem --from-file=certs/device.pem.crt --from-file=certs/private.pem.key
-kubectl create configmap simulator-config --from-file=config.yaml=simulator/config.yaml
+kubectl create secret generic iot-core-certs --from-file=certs/AmazonRootCA1.pem --from-file=certs/device.pem.crt --from-file=certs/private.pem.key --dry-run=client -o yaml | kubectl apply -f -
+kubectl create configmap simulator-config --from-file=config.yaml=simulator/config.yaml --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f pod-iot-controller.yaml
 kubectl apply -f deployment-edge-analyser.yaml
 kubectl apply -f statefulset-worker.yaml
