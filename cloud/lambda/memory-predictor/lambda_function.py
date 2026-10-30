@@ -4,7 +4,7 @@ Prédiction de panne mémoire (out of memory) par machine.
 Appelée par la règle de télémétrie avec le même batch que telemetry-parser.
 Chaque mise à jour firmware perd une quantité fixe de heap, jusqu'au crash :
   - baseline   = heap libre "au repos" (hors brewing et erreurs)
-  - step       = heap perdu par mise à jour (appris à chaque chute de baseline)
+  - step       = heap perdu par mise à jour (médiane des dernières chutes de baseline)
   - interval   = temps moyen entre deux mises à jour (appris)
   => updates_left     = nombre de mises à jour avant le crash
      predicted_oom_ts = instant estimé du crash
@@ -18,6 +18,7 @@ oom_predicted est publiée sur le topic d'alerte (stockage + email).
 import json
 import math
 import os
+import statistics
 import time
 
 import boto3
@@ -29,6 +30,7 @@ ALERT_TOPIC = os.environ.get("ALERT_TOPIC", "group-8/iot/devices/alert")
 CRITICAL_FREE_BYTES = int(os.environ.get("CRITICAL_FREE_BYTES", "5000"))  # seuil du crash
 DEFAULT_STEP_BYTES = int(os.environ.get("DEFAULT_STEP_BYTES", "8000"))    # avant le 1er apprentissage
 MIN_STEP_BYTES = int(os.environ.get("MIN_STEP_BYTES", "2000"))            # chute plus petite = bruit
+STEP_HISTORY_SIZE = int(os.environ.get("STEP_HISTORY_SIZE", "10"))        # chutes gardées pour la médiane
 LEAK_DELAY_S = int(os.environ.get("LEAK_DELAY_S", "80"))                  # délai fuite après début d'update
 ALERT_AT_UPDATES_LEFT = int(os.environ.get("ALERT_AT_UPDATES_LEFT", "1"))
 MIN_INTERVAL_S = 300  # écart plus court = relance immédiate après un crash, ignoré
@@ -64,7 +66,10 @@ def process_device(dev, rows):
         return
 
     baseline = int(s["baseline_heap"]) if "baseline_heap" in s else None
-    step = int(s.get("step_bytes", DEFAULT_STEP_BYTES))
+    # Dernières chutes observées ; un ancien item sans historique repart de son step_bytes
+    step_history = [int(x) for x in s.get("step_history", [])]
+    if "step_history" not in s and "step_bytes" in s:
+        step_history = [int(s["step_bytes"])]
     interval = int(s.get("update_interval_s", 0))
     last_update = int(s.get("last_update_ts", 0))
     baseline_at_update = int(s["baseline_at_update"]) if "baseline_at_update" in s else None
@@ -94,10 +99,14 @@ def process_device(dev, rows):
         if baseline is not None:
             drop = baseline - new_baseline
             if drop >= MIN_STEP_BYTES:
-                step = drop                       # fuite observée : on apprend sa taille
+                step_history = (step_history + [drop])[-STEP_HISTORY_SIZE:]  # fuite observée
             elif -drop >= MIN_STEP_BYTES:
                 notified = False                  # heap remonté (reboot complet)
         baseline = new_baseline
+
+    # Médiane : une chute mal mesurée (fuite à cheval sur deux batches, bruit)
+    # ne fausse pas la taille de fuite. Arrondie : DynamoDB refuse les float.
+    step = round(statistics.median(step_history)) if step_history else DEFAULT_STEP_BYTES
 
     last_ts = rows[-1][0]
     item = {
@@ -105,6 +114,7 @@ def process_device(dev, rows):
         "last_ts": last_ts,
         "last_status": prev_status,
         "step_bytes": step,
+        "step_history": step_history,
         "update_interval_s": interval,
         "last_update_ts": last_update,
         "notified": notified,

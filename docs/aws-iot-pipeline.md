@@ -570,7 +570,7 @@ Une invocation ne voit qu'un batch (~60 s) : l'état de chaque machine est conse
 
 1. Charger l'item de la machine et **ignorer les lignes déjà vues** (`timestamp <= last_ts`, livraison au moins une fois).
 2. **Baseline** = heap max des lignes hors `brewing` et hors erreur (le brewing ne fait que baisser le heap).
-3. **Taille de la fuite** apprise à chaque chute de baseline ≥ 2000 o (`step_bytes`).
+3. **Taille de la fuite** : chaque chute de baseline ≥ 2000 o est ajoutée à `step_history` (les `STEP_HISTORY_SIZE` dernières) et `step_bytes` = **médiane** de cet historique. Une chute mal mesurée (bruit, fuite à cheval sur deux batches) ne fausse donc pas la prédiction. L'historique est conservé après un crash : la taille de la fuite dépend du firmware, pas du cycle.
 4. **Intervalle entre mises à jour** appris (moyenne glissante) à chaque passage en `updating` (`update_interval_s`). La relance immédiate d'une mise à jour après un crash est ignorée.
 5. **Prédiction** :
    - `updates_left = ceil((baseline − 5000) / step)`
@@ -586,7 +586,8 @@ La première prédiction de date n'apparaît qu'après **deux mises à jour obse
 |---|---|
 | `device_id` | clé |
 | `baseline_heap` | heap libre au repos (o) |
-| `step_bytes` | heap perdu par mise à jour (appris) |
+| `step_bytes` | heap perdu par mise à jour (médiane de `step_history`) |
+| `step_history` | dernières chutes de heap observées (o) |
 | `update_interval_s` | temps moyen entre deux mises à jour |
 | `updates_left` | mises à jour restantes avant le crash |
 | `predicted_oom_ts` | instant estimé du crash (epoch ms) |
@@ -603,7 +604,7 @@ La première prédiction de date n'apparaît qu'après **deux mises à jour obse
 | `IOT_ENDPOINT` | endpoint ATS (le même que `MQTT_HOST`) |
 | `ALERT_TOPIC` | `group-8/iot/devices/alert` |
 | `ALERT_AT_UPDATES_LEFT` | `1` (défaut). `2` = email ~1,5 h avant le crash |
-| `CRITICAL_FREE_BYTES`, `DEFAULT_STEP_BYTES`, `MIN_STEP_BYTES`, `LEAK_DELAY_S` | `5000`, `8000`, `2000`, `80` (défauts) |
+| `CRITICAL_FREE_BYTES`, `DEFAULT_STEP_BYTES`, `MIN_STEP_BYTES`, `STEP_HISTORY_SIZE`, `LEAK_DELAY_S` | `5000`, `8000`, `2000`, `10`, `80` (défauts) |
 | Policy inline | `group-8-memory-predictor-access` |
 
 ```json
