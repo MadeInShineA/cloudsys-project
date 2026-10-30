@@ -56,8 +56,14 @@ def describe(a):
     if t == "resumed":
         return f"Data is arriving again after {a.get('silent_s')} s of silence."
     if t == "oom_predicted":
-        return (f"Free memory is {a.get('value')} bytes. The next firmware update is expected "
-                f"to crash the machine in about {round(a.get('eta_s', 0) / 60)} min.")
+        left = a.get("updates_left", 1)
+        which = "the next firmware update" if left == 1 else f"firmware update {left} from now"
+        text = (f"Free memory is {a.get('value')} bytes. The machine is expected to crash "
+                f"(out of memory) during {which}.")
+        if a.get("predicted_oom_ts"):
+            text += (f" Predicted crash: {fmt_time(a['predicted_oom_ts'])} "
+                     f"(in about {round(a.get('eta_s', 0) / 60)} min).")
+        return text
     return "Unknown alert type, see the raw alert below."
 
 
