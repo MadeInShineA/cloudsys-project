@@ -23,6 +23,14 @@ TITLES = {
     "oom_predicted": "Out of memory predicted",
 }
 
+ERROR_TITLES = {
+    "overheat": "Overheat",
+    "out_of_memory": "Out of memory",
+    "capsule_jam": "Capsule jam",
+    "no_water": "No water",
+    "no_capsule": "No capsule",
+}
+
 ERROR_TEXT = {
     "overheat": "overheat (heater did not cut off)",
     "out_of_memory": "out of memory (machine will reboot)",
@@ -71,6 +79,9 @@ def lambda_handler(event, context):
     device = event.get("device_id", "unknown device")
     severity = str(event.get("severity", "unknown")).upper()
     title = TITLES.get(event.get("type"), event.get("type", "Alert"))
+    if event.get("type") == "error" and event.get("errors"):
+        # "Error: Overheat", ou "Error: Overheat + Capsule jam" si plusieurs bits
+        title += ": " + " + ".join(ERROR_TITLES.get(e, e) for e in event["errors"])
     when = fmt_time(event["timestamp"]) if "timestamp" in event else "unknown time"
 
     subject = f"[{severity}] {device}: {title}"[:100]   # limite SNS : 100 caractères
