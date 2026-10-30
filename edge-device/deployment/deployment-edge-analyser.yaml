@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-analyser
+spec:
+  # Une seule instance : deux analyseurs dupliqueraient les alertes et
+  # se disputeraient le checkpoint. Recreate arrête l'ancien pod avant
+  # de démarrer le nouveau lors d'une mise à jour.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: edge-analyser
+  template:
+    metadata:
+      labels:
+        app: edge-analyser
+    spec:
+      containers:
+      - name: analyser
+        image: madeinshinea/cloud-project:edge-analyser-1.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DB_PATH
+          value: "/shared/iot_data.db"
+        - name: POLL_INTERVAL
+          value: "1.0"
+        # --- Seuils (alignés sur simulator/config.yaml) -------------------
+        - name: TARGET_TEMP_C
+          value: "94.0"
+        - name: TEMP_MARGIN_C
+          value: "1.5"
+        - name: CRITICAL_TEMP_C
+          value: "112.0"
+        - name: WARN_FREE_BYTES
+          value: "15000"
+        - name: SILENCE_TIMEOUT
+          value: "20"
+        volumeMounts:
+        - name: shared-storage
+          mountPath: /shared
+
+      volumes:
+        - name: shared-storage
+          hostPath:
+            path: /shared
+            type: DirectoryOrCreate

@@ -16,6 +16,8 @@ PUBLISH_TIMEOUT = float(os.environ.get("PUBLISH_TIMEOUT", 10.0))
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", 1883))
 TOPIC = os.environ.get("TOPIC", "iot/devices/batch")
+ALERT_TOPIC = os.environ.get("ALERT_TOPIC")                  # Non défini => alertes non envoyées
+ANALYZER_TIMEOUT = float(os.environ.get("ANALYZER_TIMEOUT", 120.0))  # Heartbeat plus vieux (s) => analyseur ignoré
 CLIENT_ID = os.environ.get("CLIENT_ID", "iot-central-controller")
 GATEWAY_ID = os.environ.get("GATEWAY_ID", CLIENT_ID)
 
@@ -26,11 +28,52 @@ KEY_FILE = os.environ.get("KEY_FILE")
 
 JSON_SEP = (",", ":")  # JSON compact (sans espaces)
 
-def get_unsent_batch(conn, max_bytes):
+def table_exists(conn, name):
+    return conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)
+    ).fetchone() is not None
+
+def get_analyzer_checkpoint(conn):
+    """Dernier id de télémétrie traité par l'analyseur edge, ou None si l'analyseur
+    est absent ou inactif depuis ANALYZER_TIMEOUT (on envoie alors sans l'attendre)."""
+    if not table_exists(conn, "analyzer_state"):
+        return None
+    row = conn.execute("SELECT last_id, heartbeat FROM analyzer_state WHERE id = 0").fetchone()
+    if row is None or time.time() - row[1] > ANALYZER_TIMEOUT:
+        return None
+    return row[0]
+
+def publish_alerts(conn, client):
+    """Envoie chaque alerte de l'analyseur immédiatement (un message MQTT par alerte,
+    hors batch). Une alerte n'est supprimée qu'après l'ACK du broker."""
+    if not ALERT_TOPIC or not table_exists(conn, "alerts"):
+        return
+    for alert_id, payload in conn.execute("SELECT id, payload FROM alerts ORDER BY id ASC").fetchall():
+        message = json.dumps({**json.loads(payload), "gateway": GATEWAY_ID}, separators=JSON_SEP)
+        info = client.publish(ALERT_TOPIC, message, qos=1)
+        try:
+            info.wait_for_publish(timeout=PUBLISH_TIMEOUT)
+        except (RuntimeError, ValueError) as e:
+            print(f"[-] Publication de l'alerte impossible : {e}")
+        if not info.is_published():
+            print("[-] Alerte non acquittée, nouvel essai plus tard (conservée).")
+            return
+        conn.execute("DELETE FROM alerts WHERE id = ?", (alert_id,))
+        conn.commit()
+        print(f"[!] Alerte envoyée : {message}")
+
+def get_unsent_batch(conn, max_bytes, max_id=None):
     """Récupère un lot de messages non envoyés dont la taille JSON finale ne dépasse pas max_bytes.
+    Si max_id est donné, seules les lignes déjà analysées (id <= max_id) sont prises.
     Retourne (ids, lignes, timestamp en ms de la plus vieille ligne, lot plein ?)."""
     cursor = conn.cursor()
-    cursor.execute("SELECT id, timestamp, raw_data FROM telemetry_logs WHERE sent = 0 ORDER BY id ASC")
+    if max_id is None:
+        cursor.execute("SELECT id, timestamp, raw_data FROM telemetry_logs WHERE sent = 0 ORDER BY id ASC")
+    else:
+        cursor.execute(
+            "SELECT id, timestamp, raw_data FROM telemetry_logs WHERE sent = 0 AND id <= ? ORDER BY id ASC",
+            (max_id,),
+        )
     rows = cursor.fetchall()
 
     batch_ids = []
@@ -85,7 +128,13 @@ def main():
                 continue
 
             conn = sqlite3.connect(DB_PATH)
-            batch_ids, batch_data, oldest_ts, full = get_unsent_batch(conn, MAX_BYTES)
+
+            # Les alertes passent avant la télémétrie, sans attendre le batch
+            publish_alerts(conn, client)
+
+            batch_ids, batch_data, oldest_ts, full = get_unsent_batch(
+                conn, MAX_BYTES, get_analyzer_checkpoint(conn)
+            )
             age = time.time() - oldest_ts / 1000 if oldest_ts else 0
 
             # Envoi seulement si le lot est plein ou si la plus vieille ligne attend depuis trop longtemps
