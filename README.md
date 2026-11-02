@@ -19,6 +19,7 @@ simulator → SQLite → edge-analyser → iot-controller ──MQTT/TLS──�
 | `edge-device/deployment/edge-analyser/` | Edge anomaly detection |
 | `edge-device/deployment/iot-controller/` | MQTT gateway to AWS IoT Core |
 | `cloud/lambda/` | Lambdas: `telemetry-parser`, `memory-predictor`, `alert-notifier` |
+| `cloud/grafana/dashboard.json` | Grafana dashboard (import via *Dashboards → New → Import*) |
 | `docs/` | Architecture, analysis and AWS setup documentation |
 
 ## Prerequisites
