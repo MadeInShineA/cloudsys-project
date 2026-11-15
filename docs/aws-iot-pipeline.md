@@ -687,19 +687,33 @@ Grafana se connecte avec l'utilisateur IAM `group-8-grafana-reader` (clés d'acc
 
 ### Requêtes PartiQL
 
+Requêtes du dashboard (`cloud/grafana/dashboard.json`) :
+
 ```sql
--- Télémétrie
+-- Panneaux de télémétrie (heap, puissance, température, statut) : seule la plage affichée est lue
 SELECT "timestamp", temperature_c FROM "group-8-telemetry"
-WHERE device_id = 'coffee-machine-0' AND "timestamp" > 1792000000000
+WHERE device_id = '$device_id'
+AND "timestamp" BETWEEN ${__from} AND ${__to}
+
+-- Variable device_id : un item par machine au lieu d'un scan de la télémétrie
+SELECT "device_id" FROM "group-8-device-state"
 
 -- Alertes
-SELECT * FROM "group-8-alerts" WHERE device_id = 'coffee-machine-0'
+SELECT * FROM "group-8-alerts" WHERE device_id = '$device_id'
 
 -- Prédiction mémoire (un item par machine, pas besoin de WHERE)
 SELECT * FROM "group-8-device-state"
 ```
 
-Garder `WHERE device_id = '…'` sur les tables de télémétrie et d'alertes : avec la partition key, DynamoDB ne lit que cette machine ; sans, PartiQL scanne toute la table.
+`${__from}` et `${__to}` sont des variables globales de Grafana : début et fin de la plage du dashboard, en epoch ms comme `timestamp`.
+
+**DynamoDB facture les octets lus, pas les lignes affichées** (une unité de lecture par 4 KB, 0,5 en lecture éventuellement cohérente), et la plage de temps de Grafana ne filtre qu'après réception :
+
+- Garder `WHERE device_id = '…'` sur les tables de télémétrie et d'alertes : avec la partition key, DynamoDB ne lit que cette machine ; sans, PartiQL scanne toute la table.
+- Ajouter `"timestamp" BETWEEN ${__from} AND ${__to}` sur la télémétrie : `timestamp` étant la sort key, DynamoDB ne lit que la plage demandée. Sans cette condition, un panneau lit les 90 jours de la machine (~3,9 M items, ~720 MB, ~90 000 unités de lecture) pour en afficher 6 h (~10 800 items, ~250 unités).
+- Ne jamais construire la liste des machines depuis `group-8-telemetry` : `SELECT device_id` sans `WHERE` scanne toute la table à chaque chargement du dashboard.
+
+Avant ce correctif, à 50 machines et 20 chargements par jour, les lectures du dashboard auraient atteint ~450 $/mois une fois les 90 jours remplis, contre moins de 0,10 $ avec les requêtes actuelles.
 
 Panneaux utiles : alertes en **annotations** sur les courbes de température et de heap, tableau « alertes récentes » coloré par sévérité, stat « Updates before OOM » (vert ≥ 3, orange 2, rouge 1), stat « Predicted crash » sur `predicted_oom_ts` (unité *Datetime*, epoch ms), seuils 102 / 112 °C et 15000 / 5000 o.
 
@@ -744,6 +758,9 @@ Ordres de grandeur pour 2 machines en continu :
 - Lambda : ~2 × 1 440 invocations/jour (parser + prédicteur) + les emails, dans le free tier
 - DynamoDB : ~86 400 écritures/jour (1 par échantillon), soit quelques dollars par mois en 24/7 ; stockage 90 jours ≈ 1,5-2 GB. **Les écritures DynamoDB dominent le coût**, pas les messages IoT. Le prédicteur ajoute ~2 lectures + 2 écritures par minute, négligeable
 - SNS : les 1 000 premiers emails par mois sont gratuits
+- Grafana : offre gratuite. Ses requêtes sont facturées comme lectures DynamoDB, négligeables tant qu'elles sont bornées dans le temps (voir [Requêtes PartiQL](#requêtes-partiql))
+
+Pour 50 machines en continu (échantillon toutes les 2 s, rétention 90 jours), l'estimation est d'environ **120 $/mois**, dont ~85 $ d'écritures DynamoDB : ~49 $ pour les échantillons et ~35 $ pour l'état réécrit par `memory-predictor` à chaque batch pour chaque machine. À cette échelle, le prédicteur (concurrence 1) est occupé ~55 % du temps.
 
 ## Dépannage rencontré
 

@@ -50,7 +50,7 @@
                       "version": "v0",
                       "spec": {
                         "format": 1,
-                        "rawSql": "SELECT \"timestamp\", \"heap_free_bytes\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id';"
+                        "rawSql": "SELECT \"timestamp\", \"heap_free_bytes\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id'\nAND \"timestamp\" BETWEEN ${__from} AND ${__to};"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-dynamodb-datasource-1",
@@ -187,7 +187,7 @@
                       "version": "v0",
                       "spec": {
                         "format": 1,
-                        "rawSql": "SELECT \"timestamp\", \"power_consumption_mw\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id';"
+                        "rawSql": "SELECT \"timestamp\", \"power_consumption_mw\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id'\nAND \"timestamp\" BETWEEN ${__from} AND ${__to};"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-dynamodb-datasource-1",
@@ -317,7 +317,7 @@
                       "version": "v0",
                       "spec": {
                         "format": 1,
-                        "rawSql": "SELECT \"timestamp\",\"temperature_c\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id';"
+                        "rawSql": "SELECT \"timestamp\",\"temperature_c\"\nFROM \"group-8-telemetry\"\nWHERE device_id='$device_id'\nAND \"timestamp\" BETWEEN ${__from} AND ${__to};"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-dynamodb-datasource-1",
@@ -454,7 +454,7 @@
                       "version": "v0",
                       "spec": {
                         "format": 1,
-                        "rawSql": "SELECT \"timestamp\", \"device_status\", \"error_code\" FROM \"group-8-telemetry\" WHERE device_id='$device_id';"
+                        "rawSql": "SELECT \"timestamp\", \"device_status\", \"error_code\" FROM \"group-8-telemetry\" WHERE device_id='$device_id'\nAND \"timestamp\" BETWEEN ${__from} AND ${__to};"
                       },
                       "labels": {
                         "grafana.app/export-label": "grafana-dynamodb-datasource-1",
@@ -1093,7 +1093,7 @@
             "version": "v0",
             "spec": {
               "format": 1,
-              "rawSql": "SELECT \"device_id\" FROM \"group-8-telemetry\";"
+              "rawSql": "SELECT \"device_id\" FROM \"group-8-device-state\";"
             },
             "labels": {
               "grafana.app/export-label": "grafana-dynamodb-datasource-1",
